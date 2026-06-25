@@ -3,6 +3,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# 换国内 Debian 镜像源（阿里云），加速 apt 下载
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
+
 # 安装系统依赖（FAISS 需要 libgomp）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
@@ -10,7 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 先复制依赖文件，利用 Docker 缓存层
 COPY code/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 换国内 PyPI 镜像源，加速 pip 下载
+RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 
 # 复制源码和模型
 COPY code/ ./code/
