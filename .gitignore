@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+venv/
+.venv/
+env/
+
+# 环境变量（含 API Key）
+.env
+*.env.local
+
+# FAISS 索引（运行时自动生成，不需要提交）
+code/vector_index/
+
+# 推荐历史（用户本地数据）
+code/recommendation_history.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+
+# MCP / Claude
+.claude/
+.mcp/

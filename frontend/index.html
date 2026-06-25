@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>尝尝咸淡 · AI 智能食谱助手</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   尝尝咸淡 — AI 智能食谱助手 · 灶台书香
+   ============================================================ */
+
+:root {
+  --cream:        #FDF8F0;
+  --paper:        #FFFBF5;
+  --terracotta:   #C67B5C;
+  --terracotta-dk:#B8543A;
+  --terracotta-lt:#F0D5C8;
+  --amber:        #E8A850;
+  --amber-lt:     #FDF0DC;
+  --brown:        #3C2415;
+  --brown-md:     #6B4D3A;
+  --sage:         #7D9B76;
+  --sage-lt:      #EDF3EB;
+  --warm-gray:    #8B7E74;
+  --white:        #FFFCF7;
+  --shadow-sm:    0 1px 3px rgba(60,36,21,0.08);
+  --shadow-md:    0 4px 20px rgba(60,36,21,0.10);
+  --shadow-lg:    0 12px 40px rgba(60,36,21,0.14);
+  --shadow-glow:  0 0 40px rgba(198,123,92,0.25);
+  --radius-sm:    10px;
+  --radius-md:    16px;
+  --radius-lg:    24px;
+  --radius-xl:    32px;
+  --font-display: 'Ma Shan Zheng', 'ZCOOL KuaiLe', cursive;
+  --font-body:    'Noto Serif SC', 'STSong', 'SimSun', serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--cream);
+  color: var(--brown);
+  line-height: 1.7;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Noise Texture Overlay ---- */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.header {
+  position: relative;
+  padding: 48px 24px 40px;
+  text-align: center;
+  overflow: hidden;
+  background: linear-gradient(175deg, #FDF0DC 0%, #FDF8F0 40%, #FFFBF5 100%);
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  height: 120px;
+  background: radial-gradient(ellipse, rgba(232,168,80,0.18) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: steamRise 4s ease-in-out infinite;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.7);
+  width: 320px;
+  height: 120px;
+  background: radial-gradient(ellipse, rgba(232,168,80,0.10) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: steamRise 4s ease-in-out 1.5s infinite;
+}
+
+@keyframes steamRise {
+  0%, 100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 0.6; }
+  50%      { transform: translateX(-50%) translateY(-18px) scale(1.25); opacity: 0.25; }
+}
+
+.header-content {
+  position: relative;
+  z-index: 1;
+}
+
+.logo-icon {
+  font-size: 3.2rem;
+  display: block;
+  margin-bottom: 4px;
+  animation: gentleBounce 2s ease-in-out infinite;
+}
+
+@keyframes gentleBounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+.header h1 {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 400;
+  color: var(--terracotta-dk);
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.header .subtitle {
+  font-size: 0.95rem;
+  color: var(--warm-gray);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+}
+
+/* ---- Decorative divider ---- */
+.divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 20px auto 0;
+  max-width: 280px;
+  opacity: 0.5;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--terracotta-lt), transparent);
+}
+
+.divider span { font-size: 0.75rem; color: var(--terracotta); }
+
+/* ============================================================
+   MAIN LAYOUT — 双栏：左侧每日推荐 + 右侧搜索/结果
+   ============================================================ */
+.app-layout {
+  display: flex;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 24px 80px;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.daily-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   SEARCH SECTION
+   ============================================================ */
+.search-section {
+  margin-top: -16px;
+  position: relative;
+  z-index: 10;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--white);
+  border: 2px solid transparent;
+  border-radius: var(--radius-xl);
+  padding: 6px 6px 6px 28px;
+  box-shadow: var(--shadow-md);
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.search-wrapper:focus-within {
+  border-color: var(--terracotta);
+  box-shadow: var(--shadow-glow), var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 1.08rem;
+  color: var(--brown);
+  background: transparent;
+  padding: 12px 0;
+  min-width: 0;
+}
+
+.search-input::placeholder {
+  color: #C4B5A8;
+  font-style: italic;
+}
+
+.search-btn {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--terracotta), var(--terracotta-dk));
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(184,84,58,0.30);
+}
+
+.search-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 20px rgba(184,84,58,0.40);
+}
+
+.search-btn:active { transform: scale(0.96); }
+
+.search-btn.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.search-btn.loading .btn-icon { animation: spin 0.8s linear infinite; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Filters ---- */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+  align-items: center;
+}
+
+.filter-label {
+  font-size: 0.82rem;
+  color: var(--warm-gray);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  margin-right: 2px;
+}
+
+.chip {
+  padding: 7px 16px;
+  border-radius: 24px;
+  border: 1.5px solid #E8D5CB;
+  background: var(--white);
+  color: var(--brown-md);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.chip:hover {
+  border-color: var(--terracotta);
+  color: var(--terracotta);
+  background: #FFF5F0;
+}
+
+.chip.active {
+  background: var(--terracotta);
+  color: white;
+  border-color: var(--terracotta);
+  box-shadow: 0 2px 10px rgba(198,123,92,0.3);
+}
+
+.chip-difficulty {
+  border-style: dashed;
+}
+
+/* ============================================================
+   RESULTS SECTION
+   ============================================================ */
+.results-section {
+  margin-top: 32px;
+  min-height: 200px;
+}
+
+/* ---- Empty state ---- */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--warm-gray);
+}
+
+.empty-state .empty-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+}
+
+/* ---- Loading ---- */
+.cooking-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 20px;
+}
+
+.bubbles {
+  display: flex;
+  gap: 8px;
+}
+
+.bubble {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--terracotta);
+  animation: bubbleUp 1.2s ease-in-out infinite;
+}
+
+.bubble:nth-child(1) { animation-delay: 0s; }
+.bubble:nth-child(2) { animation-delay: 0.15s; background: var(--amber); }
+.bubble:nth-child(3) { animation-delay: 0.3s; }
+.bubble:nth-child(4) { animation-delay: 0.45s; background: var(--sage); }
+.bubble:nth-child(5) { animation-delay: 0.6s; }
+
+@keyframes bubbleUp {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.55; }
+  50%      { transform: translateY(-14px) scale(1.45); opacity: 1; }
+}
+
+.loading-text {
+  font-size: 0.9rem;
+  color: var(--warm-gray);
+  letter-spacing: 0.04em;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
+/* ---- Result Header ---- */
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #E8D5CB;
+}
+
+.result-type-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+}
+
+.badge-list    { background: var(--sage-lt); color: var(--sage); }
+.badge-detail  { background: var(--terracotta-lt); color: var(--terracotta-dk); }
+.badge-general { background: var(--amber-lt); color: #B8802A; }
+
+.result-count {
+  font-size: 0.82rem;
+  color: var(--warm-gray);
+  margin-left: auto;
+}
+
+/* ---- Recipe Cards Grid (list mode) ---- */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.recipe-card {
+  position: relative;
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  padding: 22px 20px 18px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  border: 1px solid #F0E5DA;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.recipe-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(to right, var(--terracotta), var(--amber), var(--sage));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s ease;
+}
+
+.recipe-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(60,36,21,0.12);
+  border-color: var(--terracotta-lt);
+}
+
+.recipe-card:hover::after { transform: scaleX(1); }
+
+.recipe-card .card-category {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--terracotta);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.recipe-card .card-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--brown);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.recipe-card .card-difficulty {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--warm-gray);
+}
+
+.recipe-card .card-difficulty .stars { color: var(--amber); letter-spacing: 1px; }
+
+/* ---- Streaming text (general mode) ---- */
+.streaming-answer {
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  padding: 28px 30px;
+  border: 1px solid #F0E5DA;
+  box-shadow: var(--shadow-sm);
+  line-height: 1.9;
+  font-size: 1rem;
+  min-height: 60px;
+  position: relative;
+}
+
+.streaming-answer .cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background: var(--terracotta);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 0.7s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* Markdown-like rendering in streaming answer */
+.streaming-answer h2 { font-size: 1.15rem; color: var(--terracotta-dk); margin: 1.2em 0 0.5em; }
+.streaming-answer h3 { font-size: 1.05rem; color: var(--brown); margin: 0.9em 0 0.4em; }
+.streaming-answer strong { color: var(--brown); }
+.streaming-answer ul, .streaming-answer ol { padding-left: 1.4em; margin: 0.4em 0; }
+.streaming-answer li { margin-bottom: 0.2em; }
+
+/* ---- Step-by-Step (detail mode) ---- */
+.steps-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.step-card {
+  position: relative;
+  display: flex;
+  gap: 20px;
+  padding: 20px 0;
+  animation: slideIn 0.5s ease both;
+}
+
+.step-card:nth-child(1) { animation-delay: 0.05s; }
+.step-card:nth-child(2) { animation-delay: 0.10s; }
+.step-card:nth-child(3) { animation-delay: 0.15s; }
+.step-card:nth-child(4) { animation-delay: 0.20s; }
+.step-card:nth-child(5) { animation-delay: 0.25s; }
+.step-card:nth-child(6) { animation-delay: 0.30s; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.step-number {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--terracotta);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 3px 12px rgba(198,123,92,0.3);
+}
+
+/* Connecting line between steps */
+.step-card:not(:last-child) .step-number::after {
+  content: '';
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: calc(100% + 20px);
+  background: linear-gradient(to bottom, var(--terracotta-lt), #F0E5DA);
+}
+
+.step-content {
+  flex: 1;
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  border: 1px solid #F0E5DA;
+  box-shadow: var(--shadow-sm);
+}
+
+.step-content h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--terracotta-dk);
+  margin-bottom: 6px;
+  letter-spacing: 0.03em;
+}
+
+.step-content p {
+  font-size: 0.95rem;
+  color: var(--brown-md);
+  line-height: 1.7;
+}
+
+/* ---- Segments (ingredients, tips etc) ---- */
+.segment {
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  margin-bottom: 14px;
+  border: 1px solid #F0E5DA;
+  box-shadow: var(--shadow-sm);
+}
+
+.segment h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--terracotta-dk);
+  margin-bottom: 10px;
+  letter-spacing: 0.03em;
+}
+
+.segment-ingredients {
+  border-left: 3px solid var(--sage);
+}
+
+.segment-tips {
+  border-left: 3px solid var(--amber);
+}
+
+.segment-intro {
+  border-left: 3px solid var(--terracotta);
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(60,36,21,0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal {
+  background: var(--cream);
+  border-radius: var(--radius-lg);
+  max-width: 680px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.modal-overlay.open .modal {
+  transform: translateY(0) scale(1);
+}
+
+.modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(to bottom, var(--cream) 60%, transparent);
+  padding: 28px 30px 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  color: var(--brown);
+  letter-spacing: 0.04em;
+}
+
+.modal-close {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid #E8D5CB;
+  background: var(--white);
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  color: var(--brown-md);
+}
+
+.modal-close:hover {
+  background: var(--terracotta);
+  color: white;
+  border-color: var(--terracotta);
+}
+
+.modal-body {
+  padding: 10px 30px 30px;
+}
+
+.modal-body h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--terracotta-dk);
+  margin: 20px 0 10px;
+  letter-spacing: 0.03em;
+}
+
+.modal-body h3:first-child { margin-top: 0; }
+
+.modal-body ul {
+  padding-left: 1.2em;
+  list-style: none;
+}
+
+.modal-body ul li {
+  position: relative;
+  padding-left: 16px;
+  margin-bottom: 6px;
+  line-height: 1.7;
+}
+
+.modal-body ul li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--terracotta);
+  font-weight: bold;
+}
+
+.modal-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.modal-meta span {
+  font-size: 0.82rem;
+  padding: 4px 14px;
+  border-radius: 16px;
+  background: var(--terracotta-lt);
+  color: var(--terracotta-dk);
+  font-weight: 500;
+}
+
+/* ============================================================
+   DAILY RECOMMENDATION CARD
+   ============================================================ */
+.daily-card {
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid #F0E5DA;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  animation: cardAppear 0.5s ease both;
+  position: sticky;
+  top: 24px;
+}
+
+.daily-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+@keyframes cardAppear {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 顶部装饰条 */
+.daily-card-accent {
+  height: 4px;
+  background: linear-gradient(to right, var(--terracotta), var(--amber), var(--sage));
+}
+
+.daily-card-body {
+  padding: 20px 22px 22px;
+}
+
+/* 日期行 */
+.daily-card-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--terracotta);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.daily-card-date {
+  font-size: 0.85rem;
+  color: var(--brown);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.daily-card-term {
+  font-size: 0.75rem;
+  color: var(--warm-gray);
+  margin-bottom: 16px;
+  letter-spacing: 0.03em;
+}
+
+/* 分隔线 */
+.daily-card-divider {
+  height: 1px;
+  background: linear-gradient(to right, var(--terracotta-lt), transparent 70%);
+  margin-bottom: 16px;
+}
+
+/* 菜名 */
+.daily-card-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.daily-card-title {
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  color: var(--brown);
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+  margin-bottom: 10px;
+}
+
+/* 分类/难度标签 */
+.daily-card-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.daily-card-meta .tag {
+  padding: 3px 12px;
+  border-radius: 16px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: var(--terracotta-lt);
+  color: var(--terracotta-dk);
+}
+
+.daily-card-meta .tag-difficulty {
+  background: var(--amber-lt);
+  color: #B8802A;
+}
+
+/* 推荐理由（引用风格） */
+.daily-card-reason {
+  position: relative;
+  padding-left: 14px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  color: var(--brown-md);
+  line-height: 1.7;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+.daily-card-reason::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  background: var(--terracotta-lt);
+  border-radius: 2px;
+}
+
+/* CTA 按钮 */
+.daily-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 24px;
+  border: 1.5px solid var(--terracotta);
+  background: transparent;
+  color: var(--terracotta);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: all 0.25s ease;
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+.daily-card-action:hover {
+  background: var(--terracotta);
+  color: white;
+}
+
+/* 加载骨架 */
+.daily-card-skeleton {
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid #F0E5DA;
+  overflow: hidden;
+  padding: 24px 22px;
+}
+
+.daily-card-skeleton .skel-line {
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #F0E5DA 25%, #FDF8F0 50%, #F0E5DA 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  margin-bottom: 12px;
+}
+
+.daily-card-skeleton .skel-line:nth-child(1) { width: 60%; }
+.daily-card-skeleton .skel-line:nth-child(2) { width: 40%; }
+.daily-card-skeleton .skel-line:nth-child(3) { width: 55%; margin-top: 20px; height: 28px; }
+.daily-card-skeleton .skel-line:nth-child(4) { width: 70%; height: 10px; }
+.daily-card-skeleton .skel-line:nth-child(5) { width: 80%; height: 10px; }
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================================
+   FOOTER / STATS BAR
+   ============================================================ */
+.footer-stats {
+  max-width: 820px;
+  margin: 48px auto 0;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+  flex-wrap: wrap;
+  border-top: 1px solid #E8D5CB;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--terracotta);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--warm-gray);
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   ERROR STATE
+   ============================================================ */
+.error-banner {
+  background: #FFF0ED;
+  border: 1px solid #F5C6B8;
+  color: var(--terracotta-dk);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.error-banner .error-icon { font-size: 1.3rem; flex-shrink: 0; }
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D4C4B5; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--terracotta); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 840px) {
+  .app-layout {
+    flex-direction: column;
+    padding: 16px 16px 40px;
+    gap: 16px;
+  }
+  .daily-sidebar {
+    width: 100%;
+  }
+  .daily-card {
+    position: static;
+  }
+  .daily-card-body {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto auto auto;
+    gap: 0 16px;
+    padding: 16px 18px;
+  }
+  .daily-card-label       { grid-column: 1; grid-row: 1; margin-bottom: 2px; }
+  .daily-card-date        { grid-column: 1; grid-row: 2; margin-bottom: 0; }
+  .daily-card-term        { grid-column: 1; grid-row: 3; margin-bottom: 0; }
+  .daily-card-divider     { display: none; }
+  .daily-card-icon        { grid-column: 1; grid-row: 4; font-size: 1.5rem; }
+  .daily-card-title       { grid-column: 2; grid-row: 1 / 5; font-size: 1.35rem; margin-bottom: 4px; align-self: center; }
+  .daily-card-meta        { grid-column: 1 / -1; grid-row: 5; margin: 8px 0 6px; }
+  .daily-card-reason      { grid-column: 1 / -1; grid-row: 6; margin-bottom: 10px; }
+  .daily-card-action      { grid-column: 1 / -1; grid-row: 7; width: 100%; }
+}
+
+@media (max-width: 640px) {
+  .header { padding: 32px 16px 28px; }
+  .header h1 { font-size: 2.2rem; }
+  .search-wrapper { padding: 4px 4px 4px 18px; border-radius: var(--radius-lg); }
+  .search-input { font-size: 0.95rem; padding: 10px 0; }
+  .search-btn { width: 42px; height: 42px; }
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .recipe-card { padding: 16px 14px 14px; }
+  .recipe-card .card-title { font-size: 1.15rem; }
+  .step-card { gap: 12px; }
+  .step-number { width: 32px; height: 32px; font-size: 0.85rem; }
+  .modal { max-height: 90vh; border-radius: var(--radius-md); }
+  .modal-header { padding: 20px 20px 8px; }
+  .modal-body { padding: 8px 20px 24px; }
+  .footer-stats { gap: 20px; }
+}
+
+/* Keyboard shortcut hint */
+.kbd-hint {
+  font-size: 0.72rem;
+  color: #C4B5A8;
+  text-align: center;
+  margin-top: 12px;
+  letter-spacing: 0.03em;
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="header">
+  <div class="header-content">
+    <span class="logo-icon">🍳</span>
+    <h1>尝尝咸淡</h1>
+    <p class="subtitle">AI 智能食谱助手 · 告别"今天吃什么"的世纪难题</p>
+  </div>
+  <div class="divider">
+    <span>✦</span>
+  </div>
+</header>
+
+<!-- ============================================================
+     MAIN LAYOUT (双栏)
+     ============================================================ -->
+<div class="app-layout">
+
+  <!-- ===== 左侧：每日推荐 ===== -->
+  <aside class="daily-sidebar" id="dailySidebar">
+    <!-- 骨架屏（数据加载前显示） -->
+    <div class="daily-card-skeleton" id="dailyCardSkeleton">
+      <div class="skel-line"></div>
+      <div class="skel-line"></div>
+      <div class="skel-line"></div>
+      <div class="skel-line"></div>
+      <div class="skel-line"></div>
+    </div>
+    <!-- 真实卡片（数据就绪后填充并显示） -->
+    <div class="daily-card" id="dailyCard" style="display:none">
+      <div class="daily-card-accent"></div>
+      <div class="daily-card-body">
+        <span class="daily-card-label">📅 今日推荐</span>
+        <div class="daily-card-date" id="dailyDate"></div>
+        <div class="daily-card-term" id="dailyTerm"></div>
+        <div class="daily-card-divider"></div>
+        <span class="daily-card-icon">🥘</span>
+        <h3 class="daily-card-title" id="dailyDishName"></h3>
+        <div class="daily-card-meta">
+          <span class="tag" id="dailyCategory"></span>
+          <span class="tag tag-difficulty" id="dailyDifficulty"></span>
+        </div>
+        <p class="daily-card-reason" id="dailyReason"></p>
+        <button class="daily-card-action" id="dailyActionBtn">
+          👨‍🍳 查看详细做法 →
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== 右侧：搜索 + 结果 ===== -->
+  <div class="main-content">
+    <!-- Search -->
+    <section class="search-section">
+      <div class="search-wrapper" id="searchWrapper">
+        <input
+          type="text"
+          class="search-input"
+          id="searchInput"
+          placeholder="输入菜名、食材或烹饪问题…例如：红烧肉怎么做？"
+          autocomplete="off"
+        >
+        <button class="search-btn" id="searchBtn" title="搜索 (Enter)">
+          <span class="btn-icon">🔍</span>
+        </button>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="filters" id="categoryFilters">
+        <span class="filter-label">分类</span>
+      </div>
+      <div class="filters" id="difficultyFilters" style="margin-top:6px">
+        <span class="filter-label">难度</span>
+      </div>
+    </section>
+
+    <p class="kbd-hint">按 Enter 搜索 · 点击卡片查看完整食谱 · 支持流式输出</p>
+
+    <!-- Results -->
+    <section class="results-section" id="resultsSection">
+      <div class="empty-state" id="emptyState">
+        <span class="empty-icon">🥢</span>
+        <p>在上方输入你想做的菜，我来帮你找到最佳食谱</p>
+      </div>
+    </section>
+  </div><!-- .main-content -->
+
+</div><!-- .app-layout -->
+
+<!-- Stats (full-width) -->
+<div class="footer-stats" id="footerStats">
+  <div class="stat-item">
+    <div class="stat-value" id="statDocs">—</div>
+    <div class="stat-label">食谱总数</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value" id="statCats">—</div>
+    <div class="stat-label">菜品分类</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value" id="statChunks">—</div>
+    <div class="stat-label">知识块</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     RECIPE DETAIL MODAL
+     ============================================================ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle"></h2>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<script>
+// ====================================================================
+// Config
+// ====================================================================
+const API_BASE = 'http://localhost:8899';
+
+// ====================================================================
+// State
+// ====================================================================
+let activeCategory = '';
+let activeDifficulty = '';
+let isStreaming = false;
+let abortController = null;
+
+// ====================================================================
+// DOM refs
+// ====================================================================
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+const searchInput   = $('#searchInput');
+const searchBtn     = $('#searchBtn');
+const resultsSection = $('#resultsSection');
+const emptyState    = $('#emptyState');
+const modalOverlay  = $('#modalOverlay');
+const modal         = $('#modal');
+const modalTitle    = $('#modalTitle');
+const modalBody     = $('#modalBody');
+const modalClose    = $('#modalClose');
+const catFilters    = $('#categoryFilters');
+const difFilters    = $('#difficultyFilters');
+
+// ====================================================================
+// Daily Recommendation
+// ====================================================================
+const dailySidebar     = $('#dailySidebar');
+const dailyCard        = $('#dailyCard');
+const dailyCardSkeleton = $('#dailyCardSkeleton');
+const dailyDate        = $('#dailyDate');
+const dailyTerm        = $('#dailyTerm');
+const dailyDishName    = $('#dailyDishName');
+const dailyCategory    = $('#dailyCategory');
+const dailyDifficulty  = $('#dailyDifficulty');
+const dailyReason      = $('#dailyReason');
+const dailyActionBtn   = $('#dailyActionBtn');
+
+async function fetchDailyRecommendation() {
+  try {
+    const res = await fetch(`${API_BASE}/api/daily-recommendation`);
+    if (!res.ok) {
+      console.warn('每日推荐接口不可用:', res.status);
+      dailySidebar.style.display = 'none';
+      return;
+    }
+    const data = await res.json();
+    if (data.error) {
+      console.warn('每日推荐生成失败:', data.error);
+      dailySidebar.style.display = 'none';
+      return;
+    }
+    renderDailyCard(data);
+  } catch (e) {
+    console.warn('每日推荐请求失败，后端可能未启动:', e.message);
+    dailySidebar.style.display = 'none';
+  }
+}
+
+function renderDailyCard(data) {
+  const ctx = data.date_context || {};
+
+  // 日期行
+  dailyDate.textContent = ctx.display_date || '';
+
+  // 农历 + 节气行
+  let termParts = [];
+  if (ctx.display_lunar) termParts.push(ctx.display_lunar);
+  if (ctx.solar_term_context) termParts.push(ctx.solar_term_context);
+  dailyTerm.textContent = termParts.join(' · ');
+
+  // 菜名
+  dailyDishName.textContent = data.dish_name || '未知菜品';
+
+  // 分类标签
+  dailyCategory.textContent = data.category || '';
+
+  // 难度标签
+  let diff = data.difficulty || '';
+  if (diff) {
+    // 转换难度为星星
+    const starMap = {
+      '非常简单': '★ 非常简单',
+      '简单': '★★ 简单',
+      '中等': '★★★ 中等',
+      '困难': '★★★★ 困难',
+      '非常困难': '★★★★★ 非常困难',
+    };
+    dailyDifficulty.textContent = starMap[diff] || diff;
+  } else {
+    dailyDifficulty.textContent = '';
+  }
+
+  // 推荐理由
+  dailyReason.textContent = data.reason || '今天吃点什么呢？让我为你推荐一道好菜吧！';
+
+  // 查看做法按钮
+  dailyActionBtn.onclick = function () {
+    let dishName = data.dish_name;
+    if (dishName) {
+      // 去掉括号中的半成品/加工方式等后缀，避免搜索噪音
+      dishName = dishName.replace(/[（(][^）)]*[）)]/g, '').trim();
+      searchInput.value = `${dishName}怎么做`;
+      // 滚动到搜索栏
+      searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      doSearch();
+    }
+  };
+
+  // 显示真实卡片，隐藏骨架屏
+  dailyCardSkeleton.style.display = 'none';
+  dailyCard.style.display = '';
+}
+
+// ====================================================================
+// Init
+// ====================================================================
+async function init() {
+  await loadFilters();
+  await loadStats();
+  bindEvents();
+  // 自动加载每日推荐（不阻塞其他初始化）
+  fetchDailyRecommendation();
+}
+
+async function loadFilters() {
+  try {
+    const res = await fetch(`${API_BASE}/api/categories`);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    // Category chips
+    data.categories.forEach(cat => {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = cat;
+      chip.dataset.value = cat;
+      chip.addEventListener('click', () => toggleCategory(chip, cat));
+      catFilters.appendChild(chip);
+    });
+
+    // Difficulty chips
+    data.difficulties.forEach(dif => {
+      const chip = document.createElement('span');
+      chip.className = 'chip chip-difficulty';
+      chip.textContent = dif;
+      chip.dataset.value = dif;
+      chip.addEventListener('click', () => toggleDifficulty(chip, dif));
+      difFilters.appendChild(chip);
+    });
+  } catch (e) {
+    console.warn('加载分类失败，后端可能未启动:', e.message);
+  }
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch(`${API_BASE}/api/stats`);
+    if (!res.ok) return;
+    const data = await res.json();
+    $('#statDocs').textContent  = data.total_documents || '—';
+    $('#statCats').textContent  = data.categories ? Object.keys(data.categories).length : '—';
+    $('#statChunks').textContent = data.total_chunks || '—';
+  } catch (e) {
+    console.warn('加载统计失败:', e.message);
+  }
+}
+
+function bindEvents() {
+  searchBtn.addEventListener('click', doSearch);
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      doSearch();
+    }
+  });
+  modalClose.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', e => {
+    if (e.target === modalOverlay) closeModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+}
+
+// ====================================================================
+// Filter toggle
+// ====================================================================
+function toggleCategory(chip, cat) {
+  if (activeCategory === cat) {
+    chip.classList.remove('active');
+    activeCategory = '';
+  } else {
+    catFilters.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeCategory = cat;
+  }
+}
+
+function toggleDifficulty(chip, dif) {
+  if (activeDifficulty === dif) {
+    chip.classList.remove('active');
+    activeDifficulty = '';
+  } else {
+    difFilters.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeDifficulty = dif;
+  }
+}
+
+// ====================================================================
+// Search
+// ====================================================================
+async function doSearch() {
+  const query = searchInput.value.trim();
+  if (!query || isStreaming) return;
+
+  // Cancel previous request
+  if (abortController) abortController.abort();
+  abortController = new AbortController();
+
+  // Build query with filters
+  let finalQuery = query;
+  if (activeCategory) finalQuery = `${activeCategory} ${finalQuery}`;
+  if (activeDifficulty) finalQuery = `${activeDifficulty} ${finalQuery}`;
+
+  // Show loading
+  isStreaming = true;
+  searchBtn.classList.add('loading');
+  searchBtn.querySelector('.btn-icon').textContent = '⏳';
+  emptyState.style.display = 'none';
+  resultsSection.innerHTML = `
+    <div class="cooking-loader">
+      <div class="bubbles">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+      </div>
+      <p class="loading-text">正在为你搜寻最佳食谱…</p>
+    </div>
+  `;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: finalQuery, stream: true }),
+      signal: abortController.signal,
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      showError(errData.error || `请求失败 (${res.status})`);
+      return;
+    }
+
+    // Read SSE stream
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let buffer = '';
+    let resultType = 'general'; // default, will update based on first content
+    let segments = [];
+
+    // Clear results for streaming
+    resultsSection.innerHTML = `
+      <div class="streaming-answer" id="streamingContent">
+        <span class="cursor"></span>
+      </div>
+    `;
+    const streamingContent = $('#streamingContent');
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') break;
+
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.error) {
+            showError(parsed.error);
+            return;
+          }
+          if (parsed.content) {
+            fullText += parsed.content;
+            // Detect result type from content
+            if (fullText.startsWith('## 🥘') || fullText.startsWith('## 🛒') || fullText.startsWith('## 👨‍🍳')) {
+              resultType = 'detail';
+            } else if (fullText.startsWith('为您推荐')) {
+              resultType = 'list';
+            }
+            // Render
+            renderStreamingContent(fullText, resultType);
+          }
+        } catch (e) { /* skip malformed chunks */ }
+      }
+    }
+
+    // Streaming done — final render
+    renderFinalContent(fullText, resultType);
+
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    console.error('Search error:', e);
+    showError(`搜索失败: ${e.message}`);
+  } finally {
+    isStreaming = false;
+    searchBtn.classList.remove('loading');
+    searchBtn.querySelector('.btn-icon').textContent = '🔍';
+    abortController = null;
+  }
+}
+
+// ====================================================================
+// Render streaming content
+// ====================================================================
+function renderStreamingContent(text, type) {
+  const el = $('#streamingContent');
+  if (!el) return;
+
+  if (type === 'detail') {
+    // Render as segments during streaming
+    el.innerHTML = renderMarkdownSegments(text);
+  } else {
+    // Simple text with cursor
+    el.innerHTML = escapeHtml(text) + '<span class="cursor"></span>';
+  }
+}
+
+function renderMarkdownSegments(text) {
+  // Split into sections by ## headers
+  let html = '';
+  const parts = text.split(/(?=## )/);
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+
+    // Check header type
+    if (trimmed.startsWith('## 🥘')) {
+      html += `<div class="segment segment-intro"><h3>🥘 菜品介绍</h3>${renderMarkdownBody(trimmed.replace(/^## 🥘[^\n]*\n?/, ''))}</div>`;
+    } else if (trimmed.startsWith('## 🛒')) {
+      html += `<div class="segment segment-ingredients"><h3>🛒 所需食材</h3>${renderMarkdownBody(trimmed.replace(/^## 🛒[^\n]*\n?/, ''))}</div>`;
+    } else if (trimmed.startsWith('## 👨‍🍳')) {
+      html += `<div class="segment"><h3>👨‍🍳 制作步骤</h3>${renderMarkdownBody(trimmed.replace(/^## 👨‍🍳[^\n]*\n?/, ''))}</div>`;
+    } else if (trimmed.startsWith('## 💡')) {
+      html += `<div class="segment segment-tips"><h3>💡 制作技巧</h3>${renderMarkdownBody(trimmed.replace(/^## 💡[^\n]*\n?/, ''))}</div>`;
+    } else {
+      html += `<div class="segment"><h3>${trimmed.split('\n')[0].replace(/^##\s*/, '')}</h3>${renderMarkdownBody(trimmed.replace(/^## [^\n]*\n?/, ''))}</div>`;
+    }
+  }
+  return html + '<span class="cursor"></span>';
+}
+
+function renderMarkdownBody(text) {
+  let html = escapeHtml(text.trim());
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Bullet points
+  html = html.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+  // Numbered steps
+  html = html.replace(/^(\d+)[.、]\s+(.+)$/gm, '<li><strong>$1.</strong> $2</li>');
+  // Line breaks
+  html = html.replace(/\n\n/g, '<br><br>');
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ====================================================================
+// Final render
+// ====================================================================
+function renderFinalContent(text, type) {
+  if (!text.trim()) {
+    resultsSection.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">🤷</span>
+        <p>没有找到相关结果，试试换个说法？</p>
+      </div>`;
+    return;
+  }
+
+  if (type === 'list') {
+    renderListResult(text);
+  } else if (type === 'detail') {
+    renderDetailResult(text);
+  } else {
+    renderGeneralResult(text);
+  }
+}
+
+function renderListResult(text) {
+  // Extract dish names
+  const lines = text.split('\n').filter(l => l.match(/^\d+[.、]/));
+  const dishes = lines.map(l => l.replace(/^\d+[.、]\s*/, '').trim()).filter(Boolean);
+
+  if (!dishes.length) {
+    renderGeneralResult(text);
+    return;
+  }
+
+  resultsSection.innerHTML = `
+    <div class="result-header">
+      <span class="result-type-badge badge-list">📋 菜品推荐</span>
+      <span class="result-count">共 ${dishes.length} 道</span>
+    </div>
+    <div class="cards-grid">
+      ${dishes.map(d => `
+        <div class="recipe-card" onclick="searchDish('${escapeAttr(d)}')">
+          <div class="card-category">🍽️ 食谱</div>
+          <div class="card-title">${escapeHtml(d)}</div>
+          <div class="card-difficulty">点击查看详细做法 →</div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function renderDetailResult(text) {
+  resultsSection.innerHTML = `
+    <div class="result-header">
+      <span class="result-type-badge badge-detail">👨‍🍳 分步指导</span>
+    </div>
+    ${renderMarkdownSegments(text).replace('<span class="cursor"></span>', '')}`;
+}
+
+function renderGeneralResult(text) {
+  resultsSection.innerHTML = `
+    <div class="result-header">
+      <span class="result-type-badge badge-general">💬 智能回答</span>
+    </div>
+    <div class="streaming-answer">${escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
+}
+
+function searchDish(name) {
+  searchInput.value = `${name}怎么做`;
+  doSearch();
+}
+
+// ====================================================================
+// Modal
+// ====================================================================
+function openModal(title, bodyHtml) {
+  modalTitle.textContent = title;
+  modalBody.innerHTML = bodyHtml;
+  modalOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  modalOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ====================================================================
+// Error display
+// ====================================================================
+function showError(msg) {
+  resultsSection.innerHTML = `
+    <div class="error-banner">
+      <span class="error-icon">⚠️</span>
+      <span>${escapeHtml(msg)}</span>
+    </div>`;
+}
+
+// ====================================================================
+// Utility
+// ====================================================================
+function escapeAttr(str) {
+  return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+// ====================================================================
+// Start
+// ====================================================================
+init();
+</script>
+
+</body>
+</html>
