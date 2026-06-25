@@ -75,6 +75,15 @@ def startup():
         print("   [OK] 模块初始化完成", flush=True)
         rag_system.build_knowledge_base()
         print("   [OK] 知识库构建完成", flush=True)
+
+        # 预热每日推荐缓存（首次需调 LLM，启动时算好，用户打开即秒出）
+        try:
+            print("   [..] 预热每日推荐缓存...", flush=True)
+            rag_system.get_daily_recommendation()
+            print("   [OK] 每日推荐缓存已预热", flush=True)
+        except Exception as e:
+            logger.warning(f"预热每日推荐失败（不影响主流程）: {e}")
+
         _startup_ok = True
         print("[OK] RAG 系统启动完成!\n", flush=True)
     except Exception as e:
