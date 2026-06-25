@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  cook-rag:
+    build: .
+    container_name: cook-rag
+    ports:
+      - "8899:8899"
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+    volumes:
+      # 食谱数据（可随时更新，无需重建镜像）
+      - ./data:/app/data
+      # FAISS 索引持久化（重启后保留，避免每次重建索引）
+      - ./code/vector_index:/app/code/vector_index
+    restart: unless-stopped

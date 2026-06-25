@@ -13,7 +13,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from main import RecipeRAGSystem
@@ -203,6 +204,19 @@ async def daily_recommendation():
             status_code=500,
             content={"error": f"每日推荐生成失败: {str(e)}"},
         )
+
+
+# ---------------------------------------------------------------------------
+# 静态文件服务（生产环境：后端直接提供前端页面）
+# ---------------------------------------------------------------------------
+_frontend_dir = (Path(__file__).parent.parent / "frontend").resolve()
+if _frontend_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(_frontend_dir)), name="static")
+
+    @app.get("/")
+    async def serve_frontend():
+        """提供前端页面"""
+        return FileResponse(str(_frontend_dir / "index.html"))
 
 
 # ---------------------------------------------------------------------------
