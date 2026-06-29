@@ -24,6 +24,14 @@ class RAGConfig:
     temperature: float = 0.1
     max_tokens: int = 2048
 
+    # Redis 配置
+    redis_url: str = "redis://localhost:6379/0"
+    redis_key_prefix: str = "cookrag"
+
+    # 会话配置
+    max_history_turns: int = 10
+    session_ttl_seconds: int = 86400  # 24 小时
+
     def __post_init__(self):
         """初始化后的处理"""
         pass
@@ -42,7 +50,11 @@ class RAGConfig:
             'llm_model': self.llm_model,
             'top_k': self.top_k,
             'temperature': self.temperature,
-            'max_tokens': self.max_tokens
+            'max_tokens': self.max_tokens,
+            'redis_url': self.redis_url,
+            'redis_key_prefix': self.redis_key_prefix,
+            'max_history_turns': self.max_history_turns,
+            'session_ttl_seconds': self.session_ttl_seconds,
         }
 
 # 默认配置实例

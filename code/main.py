@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 RAG系统主程序
 """
@@ -143,13 +144,16 @@ class RecipeRAGSystem:
 
         print("✅ 知识库构建完成！")
     
-    def ask_question(self, question: str, stream: bool = False):
+    def ask_question(self, question: str, stream: bool = False,
+                      session_id: str = None, chat_history: list = None):
         """
-        回答用户问题
+        回答用户问题 — 支持多轮对话
 
         Args:
             question: 用户问题
             stream: 是否使用流式输出
+            session_id: 会话 ID（可选，多轮对话时传入）
+            chat_history: 对话历史列表 [{"role":"user/assistant","content":"..."}, ...]
 
         Returns:
             生成的回答或生成器
@@ -157,48 +161,76 @@ class RecipeRAGSystem:
         if not all([self.retrieval_module, self.generation_module]):
             raise ValueError("请先构建知识库")
 
+        chat_history = chat_history or []
+        is_first_turn = len(chat_history) == 0
+
         print(f"\n[问题] 用户问题: {question}")
+        if not is_first_turn:
+            print(f"[会话] 多轮对话，历史 {len(chat_history)} 条消息")
 
-        # 0. 意图守卫 - 拦截与烹饪无关的问题
-        print("[守卫] 意图识别...")
-        try:
-            allowed = self.generation_module.intent_guard(question)
-        except Exception as e:
-            logger.warning(f"意图守卫调用失败，默认放行: {e}")
-            allowed = True
+        # ---- 格式化对话历史文本（用于注入 prompt） ----
+        history_str = self._format_chat_history(chat_history)
 
-        if not allowed:
-            print("[拒绝] 与烹饪无关的问题")
-            msg = "小厨只懂做菜，不懂这个哦～"
-            if stream:
-                return (chunk for chunk in [msg])
-            return msg
+        # ---- 0. 意图守卫：仅首轮调用 ----
+        if is_first_turn:
+            print("[守卫] 意图识别...")
+            try:
+                allowed = self.generation_module.intent_guard(question)
+            except Exception as e:
+                logger.warning(f"意图守卫调用失败，默认放行: {e}")
+                allowed = True
 
-        # 1. 查询路由
-        route_type = self.generation_module.query_router(question)
+            if not allowed:
+                print("[拒绝] 与烹饪无关的问题")
+                msg = "小厨只懂做菜，不懂这个哦～"
+                if stream:
+                    return (chunk for chunk in [msg])
+                return msg
+        else:
+            print("[守卫] 后续轮次，跳过意图守卫")
+
+        # ---- 1. 查询路由：首轮 LLM，后续轮次快速路径 ----
+        if is_first_turn:
+            route_type = self.generation_module.query_router(question)
+        else:
+            route_type = self._classify_followup(question, chat_history)
         print(f"[路由] 查询类型: {route_type}")
 
-        # 2. 智能查询重写（推荐类保持原样，做法类允许重写）
-        if route_type == 'recommend':
+        # ---- 2. 智能查询重写 ----
+        if route_type == 'recommend' and is_first_turn:
             rewritten_query = question
             print(f"[查询] 推荐类保持原样: {question}")
         else:
             print("[查询] 智能分析查询...")
-            rewritten_query = self.generation_module.query_rewrite(question)
+            rewritten_query = self.generation_module.query_rewrite(
+                question, chat_history_str=history_str
+            )
 
-        # 3. 检索相关子块（自动应用元数据过滤）
+        # ---- 3. 检索：后续轮次用历史实体增强查询 ----
         print("[检索] 搜索相关文档...")
         filters = self._extract_filters_from_query(question)
-        relevant_chunks = self.retrieval_module.hybrid_search(rewritten_query, top_k=self.config.top_k)
+
+        # 后续轮次：从历史中提取实体追加到查询
+        if not is_first_turn:
+            entities = self._extract_entities_from_history(chat_history)
+            if entities:
+                augmented = f"{rewritten_query} {' '.join(entities[:3])}"
+                print(f"[检索] 历史实体增强: {entities[:3]}")
+            else:
+                augmented = rewritten_query
+        else:
+            augmented = rewritten_query
+
+        relevant_chunks = self.retrieval_module.hybrid_search(augmented, top_k=self.config.top_k)
         if filters:
             print(f"应用过滤条件: {filters}")
-            filtered = self.retrieval_module.metadata_filtered_search(rewritten_query, filters, top_k=self.config.top_k)
+            filtered = self.retrieval_module.metadata_filtered_search(augmented, filters, top_k=self.config.top_k)
             if filtered:
                 relevant_chunks = filtered
             else:
                 print(f"过滤后无结果，回退到无过滤检索")
 
-        # 显示检索到的子块信息
+        # 显示检索信息
         if relevant_chunks:
             chunk_info = []
             for chunk in relevant_chunks:
@@ -212,19 +244,18 @@ class RecipeRAGSystem:
                 else:
                     preview = chunk.page_content[:30].strip().replace('\n', ' ')
                     chunk_info.append(f"{dish_name}({preview}...)")
-
             print(f"找到 {len(relevant_chunks)} 个相关文档块: {', '.join(chunk_info)}")
         else:
             print(f"找到 0 个相关文档块")
 
-        # 4. 检查是否找到相关内容
+        # ---- 4. 无结果处理 ----
         if not relevant_chunks:
             msg = "抱歉，没有找到相关的食谱信息。请尝试其他菜品名称或关键词。"
             if stream:
                 return (chunk for chunk in [msg])
             return msg
 
-        # 5. 获取完整文档
+        # ---- 5. 获取完整文档 ----
         print("获取完整文档...")
         relevant_docs = self.data_module.get_parent_documents(relevant_chunks)
 
@@ -232,11 +263,10 @@ class RecipeRAGSystem:
         for doc in relevant_docs:
             dish_name = doc.metadata.get('dish_name', '未知菜品')
             doc_names.append(dish_name)
-
         if doc_names:
             print(f"找到文档: {', '.join(doc_names)}")
 
-        # 6. 根据路由类型选择回答方式
+        # ---- 6. 生成回答（注入对话历史） ----
         if route_type == 'recommend':
             print("[生成] 推荐列表...")
             answer = self.generation_module.generate_list_answer(question, relevant_docs)
@@ -246,9 +276,76 @@ class RecipeRAGSystem:
         else:
             print("[生成] 分步骤指导...")
             if stream:
-                return self.generation_module.generate_step_by_step_answer_stream(question, relevant_docs)
+                return self.generation_module.generate_step_by_step_answer_stream(
+                    question, relevant_docs, chat_history_str=history_str
+                )
             else:
-                return self.generation_module.generate_step_by_step_answer(question, relevant_docs)
+                return self.generation_module.generate_step_by_step_answer(
+                    question, relevant_docs, chat_history_str=history_str
+                )
+
+    # ------------------------------------------------------------------
+    # 多轮对话辅助方法
+    # ------------------------------------------------------------------
+
+    def _format_chat_history(self, chat_history: list, max_turns: int = None) -> str:
+        """将对话历史列表格式化为可注入 prompt 的文本。"""
+        if not chat_history:
+            return ""
+        max_turns = max_turns or self.config.max_history_turns
+        # 取最近 N 轮（每轮 = user + assistant）
+        recent = chat_history[-(max_turns * 2):]
+        lines = []
+        for msg in recent:
+            role_label = "👤 用户" if msg["role"] == "user" else "🤖 助手"
+            content = msg.get("content", "")
+            # 长消息截断
+            if len(content) > 300:
+                content = content[:300] + "..."
+            lines.append(f"{role_label}: {content}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _extract_entities_from_history(chat_history: list) -> list:
+        """从助手回复中提取菜品名称等实体（用于增强后续检索）。"""
+        entities = []
+        for msg in reversed(chat_history):
+            if msg["role"] != "assistant":
+                continue
+            content = msg.get("content", "")
+            # 匹配 "1. 菜名" 或 "为您推荐以下菜品：\n1. 菜名" 等模式
+            dish_matches = re.findall(r'\d+[.、]\s*([^\s\n]{2,8})', content)
+            entities.extend(dish_matches)
+            # 匹配 "推荐：菜名"、"推荐菜品：菜名" 等
+            rec_matches = re.findall(r'(?:推荐[：:]\s*)(.+?)(?:\n|$)', content)
+            if rec_matches:
+                for rec in rec_matches:
+                    entities.extend(re.split(r'[、，,]', rec))
+        # 去重 + 清洗
+        seen = set()
+        result = []
+        for e in entities:
+            e = e.strip()
+            if e and e not in seen and len(e) >= 2:
+                seen.add(e)
+                result.append(e)
+        return result[:5]
+
+    @staticmethod
+    def _classify_followup(question: str, chat_history: list) -> str:
+        """后续轮次的快速路由分类（关键词匹配，免 LLM 调用）。
+        默认返回 'cook'（最常见的追问类型）。"""
+        recommend_keywords = ['推荐', '还有什么', '还有哪些', '别的', '其他的',
+                              '有什么', '哪些菜', '换个', '再推荐']
+        if any(kw in question for kw in recommend_keywords):
+            # 检查最近一次助手回复是否为推荐列表
+            for msg in reversed(chat_history):
+                if msg["role"] == "assistant":
+                    content = msg.get("content", "")
+                    if '为您推荐' in content:
+                        return 'recommend'
+                    break
+        return 'cook'
     
     def _extract_filters_from_query(self, query: str) -> dict:
         """
@@ -565,26 +662,33 @@ class RecipeRAGSystem:
         return result
 
     def run_interactive(self):
-        """运行交互式问答"""
+        """运行交互式问答 — 支持多轮对话"""
         print("=" * 60)
         print("🍽️  尝尝咸淡RAG系统 - 交互式问答  🍽️")
         print("=" * 60)
         print("💡 解决您的选择困难症，告别'今天吃什么'的世纪难题！")
-        
+        print("💬 支持多轮对话：可以追问、换推荐、深入了解某道菜")
+
         # 初始化系统
         self.initialize_system()
-        
+
         # 构建知识库
         self.build_knowledge_base()
-        
-        print("\n交互式问答 (输入'退出'结束):")
-        
+
+        print("\n交互式问答 (输入'退出'结束, '清空'重置对话):")
+
+        chat_history = []  # 多轮对话历史
+
         while True:
             try:
                 user_input = input("\n您的问题: ").strip()
                 if user_input.lower() in ['退出', 'quit', 'exit', '']:
                     break
-                
+                if user_input.lower() in ['清空', '重置', '新对话']:
+                    chat_history = []
+                    print("✨ 对话已重置，开始新会话")
+                    continue
+
                 # 询问是否使用流式输出
                 stream_choice = input("是否使用流式输出? (y/n, 默认y): ").strip().lower()
                 use_stream = stream_choice != 'n'
@@ -592,19 +696,31 @@ class RecipeRAGSystem:
                 print("\n回答:")
                 if use_stream:
                     # 流式输出
-                    for chunk in self.ask_question(user_input, stream=True):
+                    full_answer = ""
+                    for chunk in self.ask_question(
+                        user_input, stream=True, chat_history=chat_history
+                    ):
                         print(chunk, end="", flush=True)
+                        full_answer += chunk
                     print("\n")
+                    # 更新对话历史
+                    chat_history.append({"role": "user", "content": user_input})
+                    chat_history.append({"role": "assistant", "content": full_answer})
                 else:
                     # 普通输出
-                    answer = self.ask_question(user_input, stream=False)
+                    answer = self.ask_question(
+                        user_input, stream=False, chat_history=chat_history
+                    )
                     print(f"{answer}\n")
-                
+                    # 更新对话历史
+                    chat_history.append({"role": "user", "content": user_input})
+                    chat_history.append({"role": "assistant", "content": answer})
+
             except KeyboardInterrupt:
                 break
             except Exception as e:
                 print(f"处理问题时出错: {e}")
-        
+
         print("\n感谢使用尝尝咸淡RAG系统！")
 
 

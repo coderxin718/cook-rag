@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 生成集成模块
 """
@@ -50,28 +51,33 @@ class GenerationIntegrationModule:
         
         logger.info("LLM初始化完成")
     
-    def generate_basic_answer(self, query: str, context_docs: List[Document]) -> str:
+    def generate_basic_answer(self, query: str, context_docs: List[Document],
+                              chat_history_str: str = "") -> str:
         """
         生成基础回答
 
         Args:
             query: 用户查询
             context_docs: 上下文文档列表
+            chat_history_str: 格式化的对话历史文本
 
         Returns:
             生成的回答
         """
         context = self._build_context(context_docs)
 
-        prompt = ChatPromptTemplate.from_template("""
-你是一位专业的烹饪助手。请根据以下食谱信息回答用户的问题。
+        history_section = self._build_history_section(chat_history_str)
 
-用户问题: {question}
+        prompt = ChatPromptTemplate.from_template(f"""\
+你是一位专业的烹饪助手。请根据以下食谱信息回答用户的问题。
+{history_section}
+用户问题: {{question}}
 
 相关食谱信息:
-{context}
+{{context}}
 
 请提供详细、实用的回答。如果信息不足，请诚实说明。
+如果对话历史中有相关上下文，请结合历史理解用户的完整意图。
 
 回答:""")
 
@@ -86,26 +92,30 @@ class GenerationIntegrationModule:
         response = chain.invoke(query)
         return response
     
-    def generate_step_by_step_answer(self, query: str, context_docs: List[Document]) -> str:
+    def generate_step_by_step_answer(self, query: str, context_docs: List[Document],
+                                      chat_history_str: str = "") -> str:
         """
         生成分步骤回答
 
         Args:
             query: 用户查询
             context_docs: 上下文文档列表
+            chat_history_str: 格式化的对话历史文本
 
         Returns:
             分步骤的详细回答
         """
         context = self._build_context(context_docs)
 
-        prompt = ChatPromptTemplate.from_template("""
-你是一位专业的烹饪导师。请根据食谱信息，为用户提供详细的分步骤指导。
+        history_section = self._build_history_section(chat_history_str)
 
-用户问题: {question}
+        prompt = ChatPromptTemplate.from_template(f"""\
+你是一位专业的烹饪导师。请根据食谱信息和对话历史，为用户提供详细的分步骤指导。
+{history_section}
+用户当前问题: {{question}}
 
 相关食谱信息:
-{context}
+{{context}}
 
 请灵活组织回答，建议包含以下部分（可根据实际内容调整）：
 
@@ -126,6 +136,7 @@ class GenerationIntegrationModule:
 - 不要强行填充无关内容或重复制作步骤中的信息
 - 重点突出实用性和可操作性
 - 如果没有额外的技巧要分享，可以省略制作技巧部分
+- **重要：如果对话历史中提到了具体菜品，用户当前问题可能是对该菜品的追问（如"怎么做"、"有没有更简单的"、"需要什么食材"等），请结合历史理解用户意图，给出连贯回答。**
 
 回答:""")
 
@@ -139,21 +150,32 @@ class GenerationIntegrationModule:
         response = chain.invoke(query)
         return response
     
-    def query_rewrite(self, query: str) -> str:
+    def query_rewrite(self, query: str, chat_history_str: str = "") -> str:
         """
-        智能查询重写 - 让大模型判断是否需要重写查询
+        智能查询重写 - 支持多轮对话中的指代消解
 
         Args:
             query: 原始查询
+            chat_history_str: 格式化的对话历史文本（用于解析指代）
 
         Returns:
             重写后的查询或原查询
         """
-        prompt = PromptTemplate(
-            template="""
-你是一个智能查询分析助手。请分析用户的查询，判断是否需要重写以提高食谱搜索效果。
+        history_context = ""
+        if chat_history_str:
+            history_context = f"""
+对话历史:
+{chat_history_str}
 
-原始查询: {query}
+注意：如果用户查询包含指代词（"这个"、"第一道"、"第二个"、"它"、"更简单的"、"还有哪些"等），
+必须根据对话历史解析出具体含义后再进行重写。
+例如："第一道菜怎么做" → 根据历史中推荐的第一个菜品名称，重写为"XXX怎么做"。"""
+
+        prompt = PromptTemplate(
+            template=f"""\
+你是一个智能查询分析助手。请分析用户的查询，判断是否需要重写以提高食谱搜索效果。
+{history_context}
+原始查询: {{{{query}}}}
 
 分析规则：
 1. **具体明确的查询**（直接返回原查询）：
@@ -165,12 +187,14 @@ class GenerationIntegrationModule:
    - 过于宽泛：如"做菜"、"有什么好吃的"、"推荐个菜"
    - 缺乏具体信息：如"川菜"、"素菜"、"简单的"
    - 口语化表达：如"想吃点什么"、"有饮品推荐吗"
+   - 包含指代词：如"这道菜"、"第一个"、"它"
 
 重写原则：
 - 保持原意不变
 - 增加相关烹饪术语
 - 优先推荐简单易做的
 - 保持简洁性
+- 如果有对话历史，优先解析指代词
 
 示例：
 - "做菜" → "简单易做的家常菜谱"
@@ -302,28 +326,33 @@ class GenerationIntegrationModule:
         else:
             return f"为您推荐以下菜品：\n" + "\n".join([f"{i+1}. {name}" for i, name in enumerate(dish_names[:3])]) + f"\n\n还有其他 {len(dish_names)-3} 道菜品可供选择。"
 
-    def generate_basic_answer_stream(self, query: str, context_docs: List[Document]):
+    def generate_basic_answer_stream(self, query: str, context_docs: List[Document],
+                                      chat_history_str: str = ""):
         """
         生成基础回答 - 流式输出
 
         Args:
             query: 用户查询
             context_docs: 上下文文档列表
+            chat_history_str: 格式化的对话历史文本
 
         Yields:
             生成的回答片段
         """
         context = self._build_context(context_docs)
 
-        prompt = ChatPromptTemplate.from_template("""
-你是一位专业的烹饪助手。请根据以下食谱信息回答用户的问题。
+        history_section = self._build_history_section(chat_history_str)
 
-用户问题: {question}
+        prompt = ChatPromptTemplate.from_template(f"""\
+你是一位专业的烹饪助手。请根据以下食谱信息回答用户的问题。
+{history_section}
+用户问题: {{question}}
 
 相关食谱信息:
-{context}
+{{context}}
 
 请提供详细、实用的回答。如果信息不足，请诚实说明。
+如果对话历史中有相关上下文，请结合历史理解用户的完整意图。
 
 回答:""")
 
@@ -337,26 +366,30 @@ class GenerationIntegrationModule:
         for chunk in chain.stream(query):
             yield chunk
 
-    def generate_step_by_step_answer_stream(self, query: str, context_docs: List[Document]):
+    def generate_step_by_step_answer_stream(self, query: str, context_docs: List[Document],
+                                             chat_history_str: str = ""):
         """
         生成详细步骤回答 - 流式输出
 
         Args:
             query: 用户查询
             context_docs: 上下文文档列表
+            chat_history_str: 格式化的对话历史文本
 
         Yields:
             详细步骤回答片段
         """
         context = self._build_context(context_docs)
 
-        prompt = ChatPromptTemplate.from_template("""
-你是一位专业的烹饪导师。请根据食谱信息，为用户提供详细的分步骤指导。
+        history_section = self._build_history_section(chat_history_str)
 
-用户问题: {question}
+        prompt = ChatPromptTemplate.from_template(f"""\
+你是一位专业的烹饪导师。请根据食谱信息和对话历史，为用户提供详细的分步骤指导。
+{history_section}
+用户当前问题: {{question}}
 
 相关食谱信息:
-{context}
+{{context}}
 
 请灵活组织回答，建议包含以下部分（可根据实际内容调整）：
 
@@ -376,6 +409,7 @@ class GenerationIntegrationModule:
 - 根据实际内容灵活调整结构
 - 不要强行填充无关内容
 - 重点突出实用性和可操作性
+- **重要：如果对话历史中提到了具体菜品，用户当前问题可能是对该菜品的追问（如"怎么做"、"有没有更简单的"、"需要什么食材"等），请结合历史理解用户意图，给出连贯回答。**
 
 回答:""")
 
@@ -388,6 +422,18 @@ class GenerationIntegrationModule:
 
         for chunk in chain.stream(query):
             yield chunk
+
+    @staticmethod
+    def _build_history_section(chat_history_str: str) -> str:
+        """构建对话历史 prompt 段。"""
+        if not chat_history_str:
+            return ""
+        return f"""
+
+## 对话历史
+{chat_history_str}
+
+---"""
 
     def _build_context(self, docs: List[Document], max_length: int = 2000) -> str:
         """

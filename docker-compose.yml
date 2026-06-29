@@ -1,16 +1,39 @@
 version: "3.8"
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: cook-rag-redis
+    volumes:
+      - ./redis_data:/data
+    command: redis-server --appendonly yes --save 900 1 --save 300 10
+    restart: unless-stopped
+
   cook-rag:
     build: .
     container_name: cook-rag
-    ports:
-      - "80:8899"
+    # 不暴露端口到公网，只在内网供 Nginx 访问
+    expose:
+      - "8899"
     environment:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
     volumes:
-      # 食谱数据（可随时更新，无需重建镜像）
       - ./data:/app/data
-      # FAISS 索引持久化（重启后保留，避免每次重建索引）
       - ./code/vector_index:/app/code/vector_index
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: cook-rag-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - cook-rag
     restart: unless-stopped

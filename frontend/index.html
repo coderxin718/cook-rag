@@ -177,6 +177,9 @@ body::before {
 .main-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 220px);
 }
 
 .daily-sidebar {
@@ -1002,6 +1005,9 @@ body::before {
     padding: 16px 16px 40px;
     gap: 16px;
   }
+  .main-content {
+    max-height: calc(100vh - 400px);
+  }
   .daily-sidebar {
     width: 100%;
   }
@@ -1029,14 +1035,10 @@ body::before {
 @media (max-width: 640px) {
   .header { padding: 32px 16px 28px; }
   .header h1 { font-size: 2.2rem; }
-  .search-wrapper { padding: 4px 4px 4px 18px; border-radius: var(--radius-lg); }
-  .search-input { font-size: 0.95rem; padding: 10px 0; }
-  .search-btn { width: 42px; height: 42px; }
-  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-  .recipe-card { padding: 16px 14px 14px; }
-  .recipe-card .card-title { font-size: 1.15rem; }
-  .step-card { gap: 12px; }
-  .step-number { width: 32px; height: 32px; font-size: 0.85rem; }
+  .chat-input-wrapper { padding: 4px 4px 4px 14px; border-radius: var(--radius-lg); }
+  .chat-input { font-size: 0.95rem; }
+  .chat-send-btn { width: 38px; height: 38px; }
+  .message-bubble { max-width: 90%; }
   .modal { max-height: 90vh; border-radius: var(--radius-md); }
   .modal-header { padding: 20px 20px 8px; }
   .modal-body { padding: 8px 20px 24px; }
@@ -1050,6 +1052,268 @@ body::before {
   text-align: center;
   margin-top: 12px;
   letter-spacing: 0.03em;
+}
+
+/* ============================================================
+   CHAT UI
+   ============================================================ */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.chat-welcome {
+  text-align: center;
+  padding: 48px 24px;
+  animation: fadeInUp 0.6s ease;
+}
+.welcome-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 12px;
+}
+.welcome-hint {
+  font-size: 0.82rem;
+  color: var(--warm-gray);
+  margin-top: 6px;
+}
+
+/* ---- Message Row ---- */
+.message-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  animation: fadeInUp 0.35s ease;
+}
+.message-row-right {
+  flex-direction: row-reverse;
+}
+.message-avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background: var(--terracotta-lt);
+  box-shadow: var(--shadow-sm);
+}
+.message-row-right .message-avatar {
+  background: var(--amber-lt);
+}
+
+/* ---- Message Bubble ---- */
+.message-bubble {
+  max-width: 82%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  word-break: break-word;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+.message-assistant {
+  background: var(--paper);
+  color: var(--brown);
+  border: 1px solid #EDE0D4;
+  border-top-left-radius: 6px;
+}
+.message-user {
+  background: linear-gradient(135deg, var(--terracotta), var(--terracotta-dk));
+  color: #fff;
+  border-top-right-radius: 6px;
+}
+.message-content h1, .message-content h2, .message-content h3 {
+  font-size: 0.95rem;
+  margin: 6px 0 4px;
+}
+.message-content ul, .message-content ol {
+  padding-left: 18px;
+  margin: 4px 0;
+}
+.message-content li {
+  margin: 2px 0;
+}
+.message-content strong {
+  color: var(--terracotta);
+}
+.message-user .message-content strong {
+  color: #FFF3E0;
+}
+.message-time {
+  font-size: 0.65rem;
+  color: var(--warm-gray);
+  margin-top: 4px;
+  text-align: right;
+}
+.message-row-right .message-time {
+  color: rgba(255,255,255,0.7);
+}
+
+/* ---- Typing Indicator ---- */
+.typing-indicator {
+  display: inline-flex;
+  gap: 5px;
+  padding: 2px 0;
+}
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--terracotta-lt);
+  animation: dotBounce 1.4s infinite both;
+}
+.typing-indicator span:nth-child(1) { animation-delay: 0s; }
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Chat Input Area ---- */
+.chat-input-area {
+  flex-shrink: 0;
+  padding: 12px 16px 8px;
+  background: linear-gradient(180deg, transparent, var(--cream) 20%);
+  border-top: 1px solid #EDE0D4;
+}
+
+.chat-quick-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.quick-chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--terracotta-lt);
+  background: var(--white);
+  color: var(--terracotta);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.quick-chip:hover {
+  background: var(--terracotta-lt);
+  color: var(--brown);
+  border-color: var(--terracotta);
+}
+
+.chat-input-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  background: var(--white);
+  border: 2px solid #EDE0D4;
+  border-radius: 28px;
+  padding: 6px 6px 6px 18px;
+  transition: border-color 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+.chat-input-wrapper:focus-within {
+  border-color: var(--terracotta);
+  box-shadow: var(--shadow-md);
+}
+.chat-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--brown);
+  padding: 6px 0;
+  max-height: 150px;
+  line-height: 1.5;
+}
+.chat-input::placeholder {
+  color: #C4B5A8;
+}
+.chat-send-btn {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--terracotta), var(--terracotta-dk));
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chat-send-btn:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+}
+.chat-send-btn.loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+.btn-send-icon {
+  display: inline-block;
+  transform: rotate(-30deg);
+}
+
+.chat-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px 2px;
+}
+.chat-footer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 14px;
+  border: 1px solid #EDE0D4;
+  background: var(--white);
+  color: var(--warm-gray);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.chat-footer-btn:hover {
+  background: #FEF5F0;
+  border-color: var(--terracotta-lt);
+  color: var(--terracotta);
+}
+.session-id-hint {
+  font-size: 0.65rem;
+  color: #C4B5A8;
+}
+
+/* ---- Streaming cursor ---- */
+.streaming-cursor::after {
+  content: '▊';
+  animation: blink 1s step-end infinite;
+  color: var(--terracotta);
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 </style>
 </head>
@@ -1106,41 +1370,47 @@ body::before {
     </div>
   </aside>
 
-  <!-- ===== 右侧：搜索 + 结果 ===== -->
+  <!-- ===== 右侧：聊天区域 ===== -->
   <div class="main-content">
-    <!-- Search -->
-    <section class="search-section">
-      <div class="search-wrapper" id="searchWrapper">
-        <input
-          type="text"
-          class="search-input"
-          id="searchInput"
-          placeholder="输入菜名、食材或烹饪问题…例如：红烧肉怎么做？"
+    <!-- Chat Messages Container -->
+    <section class="chat-messages" id="chatMessages">
+      <div class="chat-welcome" id="chatWelcome">
+        <span class="welcome-icon">🥢</span>
+        <p>我是你的 AI 食谱助手，告诉我你想做什么菜？</p>
+        <p class="welcome-hint">试试问我："推荐几个简单易做的菜"、"红烧肉怎么做"</p>
+      </div>
+    </section>
+
+    <!-- Chat Input Area (fixed at bottom) -->
+    <div class="chat-input-area">
+      <!-- Quick prompt chips -->
+      <div class="chat-quick-chips" id="chatQuickChips">
+        <button class="quick-chip" data-msg="推荐几个简单易做的家常菜">🏠 家常推荐</button>
+        <button class="quick-chip" data-msg="推荐几个适合夏天的菜">☀️ 夏季时令</button>
+        <button class="quick-chip" data-msg="推荐几个素菜">🥬 素菜精选</button>
+        <button class="quick-chip" data-msg="有什么汤品推荐吗">🍲 汤品推荐</button>
+      </div>
+
+      <div class="chat-input-wrapper">
+        <textarea
+          class="chat-input"
+          id="chatInput"
+          placeholder="输入你的问题…（Enter 发送，Shift+Enter 换行）"
           autocomplete="off"
-        >
-        <button class="search-btn" id="searchBtn" title="搜索 (Enter)">
-          <span class="btn-icon">🔍</span>
+          rows="1"
+        ></textarea>
+        <button class="chat-send-btn" id="chatSendBtn" title="发送 (Enter)">
+          <span class="btn-send-icon">➤</span>
         </button>
       </div>
 
-      <!-- Filter chips -->
-      <div class="filters" id="categoryFilters">
-        <span class="filter-label">分类</span>
+      <div class="chat-footer-bar">
+        <button class="chat-footer-btn" id="newSessionBtn">
+          <span>🆕</span> 新会话
+        </button>
+        <span class="session-id-hint" id="sessionIdHint"></span>
       </div>
-      <div class="filters" id="difficultyFilters" style="margin-top:6px">
-        <span class="filter-label">难度</span>
-      </div>
-    </section>
-
-    <p class="kbd-hint">按 Enter 搜索 · 点击卡片查看完整食谱 · 支持流式输出</p>
-
-    <!-- Results -->
-    <section class="results-section" id="resultsSection">
-      <div class="empty-state" id="emptyState">
-        <span class="empty-icon">🥢</span>
-        <p>在上方输入你想做的菜，我来帮你找到最佳食谱</p>
-      </div>
-    </section>
+    </div>
   </div><!-- .main-content -->
 
 </div><!-- .app-layout -->
@@ -1189,10 +1459,10 @@ const API_BASE = (window.location.protocol === 'file:')
 // ====================================================================
 // State
 // ====================================================================
-let activeCategory = '';
-let activeDifficulty = '';
-let isStreaming = false;
-let abortController = null;
+let currentSessionId = null;
+let messageHistory = [];
+let isAssistantTyping = false;
+let streamAbortController = null;
 
 // ====================================================================
 // DOM refs
@@ -1200,17 +1470,18 @@ let abortController = null;
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-const searchInput   = $('#searchInput');
-const searchBtn     = $('#searchBtn');
-const resultsSection = $('#resultsSection');
-const emptyState    = $('#emptyState');
-const modalOverlay  = $('#modalOverlay');
-const modal         = $('#modal');
-const modalTitle    = $('#modalTitle');
-const modalBody     = $('#modalBody');
-const modalClose    = $('#modalClose');
-const catFilters    = $('#categoryFilters');
-const difFilters    = $('#difficultyFilters');
+const chatMessages   = $('#chatMessages');
+const chatWelcome    = $('#chatWelcome');
+const chatInput      = $('#chatInput');
+const chatSendBtn    = $('#chatSendBtn');
+const newSessionBtn  = $('#newSessionBtn');
+const chatQuickChips = $('#chatQuickChips');
+const sessionIdHint  = $('#sessionIdHint');
+const modalOverlay   = $('#modalOverlay');
+const modal          = $('#modal');
+const modalTitle     = $('#modalTitle');
+const modalBody      = $('#modalBody');
+const modalClose     = $('#modalClose');
 
 // ====================================================================
 // Daily Recommendation
@@ -1288,12 +1559,10 @@ function renderDailyCard(data) {
   dailyActionBtn.onclick = function () {
     let dishName = data.dish_name;
     if (dishName) {
-      // 去掉括号中的半成品/加工方式等后缀，避免搜索噪音
       dishName = dishName.replace(/[（(][^）)]*[）)]/g, '').trim();
-      searchInput.value = `${dishName}怎么做`;
-      // 滚动到搜索栏
-      searchInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      doSearch();
+      chatInput.value = `${dishName}怎么做`;
+      chatInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      sendMessage();
     }
   };
 
@@ -1306,41 +1575,9 @@ function renderDailyCard(data) {
 // Init
 // ====================================================================
 async function init() {
-  await loadFilters();
   await loadStats();
   bindEvents();
-  // 自动加载每日推荐（不阻塞其他初始化）
   fetchDailyRecommendation();
-}
-
-async function loadFilters() {
-  try {
-    const res = await fetch(`${API_BASE}/api/categories`);
-    if (!res.ok) return;
-    const data = await res.json();
-
-    // Category chips
-    data.categories.forEach(cat => {
-      const chip = document.createElement('span');
-      chip.className = 'chip';
-      chip.textContent = cat;
-      chip.dataset.value = cat;
-      chip.addEventListener('click', () => toggleCategory(chip, cat));
-      catFilters.appendChild(chip);
-    });
-
-    // Difficulty chips
-    data.difficulties.forEach(dif => {
-      const chip = document.createElement('span');
-      chip.className = 'chip chip-difficulty';
-      chip.textContent = dif;
-      chip.dataset.value = dif;
-      chip.addEventListener('click', () => toggleDifficulty(chip, dif));
-      difFilters.appendChild(chip);
-    });
-  } catch (e) {
-    console.warn('加载分类失败，后端可能未启动:', e.message);
-  }
 }
 
 async function loadStats() {
@@ -1357,13 +1594,47 @@ async function loadStats() {
 }
 
 function bindEvents() {
-  searchBtn.addEventListener('click', doSearch);
-  searchInput.addEventListener('keydown', e => {
+  // Send button
+  chatSendBtn.addEventListener('click', sendMessage);
+
+  // Enter to send, Shift+Enter for newline
+  chatInput.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      doSearch();
+      sendMessage();
     }
   });
+
+  // Auto-resize textarea
+  chatInput.addEventListener('input', function () {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+  });
+
+  // Quick chips
+  chatQuickChips.querySelectorAll('.quick-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chatInput.value = chip.dataset.msg;
+      sendMessage();
+    });
+  });
+
+  // New session button
+  newSessionBtn.addEventListener('click', () => {
+    if (isAssistantTyping) return;
+    createNewSession().then(() => {
+      chatMessages.innerHTML = '';
+      chatMessages.innerHTML = `
+        <div class="chat-welcome" id="chatWelcome">
+          <span class="welcome-icon">🥢</span>
+          <p>我是你的 AI 食谱助手，告诉我你想做什么菜？</p>
+          <p class="welcome-hint">试试问我："推荐几个简单易做的菜"、"红烧肉怎么做"</p>
+        </div>`;
+      messageHistory = [];
+    });
+  });
+
+  // Modal
   modalClose.addEventListener('click', closeModal);
   modalOverlay.addEventListener('click', e => {
     if (e.target === modalOverlay) closeModal();
@@ -1374,75 +1645,64 @@ function bindEvents() {
 }
 
 // ====================================================================
-// Filter toggle
+// Chat: Session & Message
 // ====================================================================
-function toggleCategory(chip, cat) {
-  if (activeCategory === cat) {
-    chip.classList.remove('active');
-    activeCategory = '';
-  } else {
-    catFilters.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    activeCategory = cat;
+async function createNewSession() {
+  try {
+    const res = await fetch(`${API_BASE}/api/session/new`, { method: 'POST' });
+    const data = await res.json();
+    currentSessionId = data.session_id;
+    sessionIdHint.textContent = `会话: ${currentSessionId}`;
+  } catch (e) {
+    // Fallback: generate client-side ID
+    currentSessionId = 'c-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    sessionIdHint.textContent = `会话: ${currentSessionId} (离线)`;
   }
+  return currentSessionId;
 }
 
-function toggleDifficulty(chip, dif) {
-  if (activeDifficulty === dif) {
-    chip.classList.remove('active');
-    activeDifficulty = '';
-  } else {
-    difFilters.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    activeDifficulty = dif;
+async function sendMessage() {
+  const query = chatInput.value.trim();
+  if (!query || isAssistantTyping) return;
+
+  // Auto-create session on first message
+  if (!currentSessionId) {
+    await createNewSession();
   }
-}
 
-// ====================================================================
-// Search
-// ====================================================================
-async function doSearch() {
-  const query = searchInput.value.trim();
-  if (!query || isStreaming) return;
+  // Hide welcome message
+  if (chatWelcome) chatWelcome.style.display = 'none';
 
-  // Cancel previous request
-  if (abortController) abortController.abort();
-  abortController = new AbortController();
+  // Add user bubble
+  appendMessage('user', query);
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
 
-  // Build query with filters
-  let finalQuery = query;
-  if (activeCategory) finalQuery = `${activeCategory} ${finalQuery}`;
-  if (activeDifficulty) finalQuery = `${activeDifficulty} ${finalQuery}`;
+  // Add assistant placeholder with typing indicator
+  const assistantMsgId = appendMessage('assistant', '', true);
 
-  // Show loading
-  isStreaming = true;
-  searchBtn.classList.add('loading');
-  searchBtn.querySelector('.btn-icon').textContent = '⏳';
-  emptyState.style.display = 'none';
-  resultsSection.innerHTML = `
-    <div class="cooking-loader">
-      <div class="bubbles">
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-      </div>
-      <p class="loading-text">正在为你搜寻最佳食谱…</p>
-    </div>
-  `;
+  isAssistantTyping = true;
+  chatSendBtn.classList.add('loading');
+
+  // Cancel previous stream if any
+  if (streamAbortController) streamAbortController.abort();
+  streamAbortController = new AbortController();
 
   try {
     const res = await fetch(`${API_BASE}/api/ask`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: finalQuery, stream: true }),
-      signal: abortController.signal,
+      body: JSON.stringify({
+        question: query,
+        stream: true,
+        session_id: currentSessionId,
+      }),
+      signal: streamAbortController.signal,
     });
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      showError(errData.error || `请求失败 (${res.status})`);
+      updateAssistantMessage(assistantMsgId, `⚠️ ${errData.error || '请求失败 (${res.status})'}`);
       return;
     }
 
@@ -1451,16 +1711,6 @@ async function doSearch() {
     const decoder = new TextDecoder();
     let fullText = '';
     let buffer = '';
-    let resultType = 'general'; // default, will update based on first content
-    let segments = [];
-
-    // Clear results for streaming
-    resultsSection.innerHTML = `
-      <div class="streaming-answer" id="streamingContent">
-        <span class="cursor"></span>
-      </div>
-    `;
-    const streamingContent = $('#streamingContent');
 
     while (true) {
       const { done, value } = await reader.read();
@@ -1473,58 +1723,113 @@ async function doSearch() {
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
         const data = line.slice(6).trim();
-        if (data === '[DONE]') break;
 
         try {
           const parsed = JSON.parse(data);
           if (parsed.error) {
-            showError(parsed.error);
+            updateAssistantMessage(assistantMsgId, `⚠️ ${parsed.error}`);
             return;
+          }
+          if (parsed.done) {
+            // Stream complete, update session_id if returned
+            if (parsed.session_id) {
+              currentSessionId = parsed.session_id;
+              sessionIdHint.textContent = `会话: ${currentSessionId}`;
+            }
+            break;
           }
           if (parsed.content) {
             fullText += parsed.content;
-            // Detect result type from content
-            if (fullText.startsWith('## 🥘') || fullText.startsWith('## 🛒') || fullText.startsWith('## 👨‍🍳')) {
-              resultType = 'detail';
-            } else if (fullText.startsWith('为您推荐')) {
-              resultType = 'list';
-            }
-            // Render
-            renderStreamingContent(fullText, resultType);
+            updateAssistantMessage(assistantMsgId, fullText, false);
           }
         } catch (e) { /* skip malformed chunks */ }
       }
     }
 
-    // Streaming done — final render
-    renderFinalContent(fullText, resultType);
+    // Final render (convert markdown segments)
+    finalizeAssistantMessage(assistantMsgId, fullText);
+    messageHistory.push({ role: 'user', content: query });
+    messageHistory.push({ role: 'assistant', content: fullText });
 
   } catch (e) {
     if (e.name === 'AbortError') return;
-    console.error('Search error:', e);
-    showError(`搜索失败: ${e.message}`);
+    console.error('Chat error:', e);
+    updateAssistantMessage(assistantMsgId, `⚠️ 请求失败: ${e.message}`);
   } finally {
-    isStreaming = false;
-    searchBtn.classList.remove('loading');
-    searchBtn.querySelector('.btn-icon').textContent = '🔍';
-    abortController = null;
+    isAssistantTyping = false;
+    chatSendBtn.classList.remove('loading');
+    streamAbortController = null;
+    chatInput.focus();
   }
 }
 
 // ====================================================================
-// Render streaming content
+// Chat: Message Bubbles
 // ====================================================================
-function renderStreamingContent(text, type) {
-  const el = $('#streamingContent');
-  if (!el) return;
+function appendMessage(role, content, isPlaceholder) {
+  var msgId = 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+  var isUser = role === 'user';
+  var avatar = isUser ? '👤' : '🍳';
+  var bubbleClass = isUser ? 'message-user' : 'message-assistant';
+  var rowClass = isUser ? 'message-row-right' : '';
+  var timeStr = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 
-  if (type === 'detail') {
-    // Render as segments during streaming
-    el.innerHTML = renderMarkdownSegments(text);
+  var contentHtml;
+  if (isPlaceholder) {
+    contentHtml = '<span class="typing-indicator"><span></span><span></span><span></span></span>';
+  } else if (!isUser) {
+    contentHtml = renderMarkdownSegmentsForChat(content) + '<span class="streaming-cursor"></span>';
   } else {
-    // Simple text with cursor
-    el.innerHTML = escapeHtml(text) + '<span class="cursor"></span>';
+    contentHtml = escapeHtml(content);
   }
+
+  var html =
+    '<div class="message-row ' + rowClass + '" id="' + msgId + '">' +
+      '<span class="message-avatar">' + avatar + '</span>' +
+      '<div class="message-bubble ' + bubbleClass + '">' +
+        '<div class="message-content">' + contentHtml + '</div>' +
+        '<div class="message-time">' + timeStr + '</div>' +
+      '</div>' +
+    '</div>';
+
+  chatMessages.insertAdjacentHTML('beforeend', html);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  return msgId;
+}
+
+function updateAssistantMessage(msgId, text, isFinal) {
+  var el = document.getElementById(msgId);
+  if (!el) return;
+  var contentDiv = el.querySelector('.message-content');
+  if (!contentDiv) return;
+  if (isFinal || text === '') {
+    contentDiv.innerHTML = renderMarkdownSegmentsForChat(text);
+  } else {
+    contentDiv.innerHTML = renderMarkdownSegmentsForChat(text) + '<span class="streaming-cursor"></span>';
+  }
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function finalizeAssistantMessage(msgId, text) {
+  var el = document.getElementById(msgId);
+  if (!el) return;
+  var contentDiv = el.querySelector('.message-content');
+  if (!contentDiv) return;
+  contentDiv.innerHTML = renderMarkdownSegmentsForChat(text);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// ====================================================================
+// Chat: Markdown Rendering (reuses existing renderMarkdownBody)
+// ====================================================================
+function renderMarkdownSegmentsForChat(text) {
+  if (!text) return '';
+  // Auto-detect: if text has ## headers, render segmented
+  if (text.indexOf('## ') >= 0) {
+    return renderMarkdownSegments(text).replace('<span class="cursor"></span>', '');
+  }
+  // Simple text
+  return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
 function renderMarkdownSegments(text) {
@@ -1574,75 +1879,6 @@ function escapeHtml(str) {
 }
 
 // ====================================================================
-// Final render
-// ====================================================================
-function renderFinalContent(text, type) {
-  if (!text.trim()) {
-    resultsSection.innerHTML = `
-      <div class="empty-state">
-        <span class="empty-icon">🤷</span>
-        <p>没有找到相关结果，试试换个说法？</p>
-      </div>`;
-    return;
-  }
-
-  if (type === 'list') {
-    renderListResult(text);
-  } else if (type === 'detail') {
-    renderDetailResult(text);
-  } else {
-    renderGeneralResult(text);
-  }
-}
-
-function renderListResult(text) {
-  // Extract dish names
-  const lines = text.split('\n').filter(l => l.match(/^\d+[.、]/));
-  const dishes = lines.map(l => l.replace(/^\d+[.、]\s*/, '').trim()).filter(Boolean);
-
-  if (!dishes.length) {
-    renderGeneralResult(text);
-    return;
-  }
-
-  resultsSection.innerHTML = `
-    <div class="result-header">
-      <span class="result-type-badge badge-list">📋 菜品推荐</span>
-      <span class="result-count">共 ${dishes.length} 道</span>
-    </div>
-    <div class="cards-grid">
-      ${dishes.map(d => `
-        <div class="recipe-card" onclick="searchDish('${escapeAttr(d)}')">
-          <div class="card-category">🍽️ 食谱</div>
-          <div class="card-title">${escapeHtml(d)}</div>
-          <div class="card-difficulty">点击查看详细做法 →</div>
-        </div>
-      `).join('')}
-    </div>`;
-}
-
-function renderDetailResult(text) {
-  resultsSection.innerHTML = `
-    <div class="result-header">
-      <span class="result-type-badge badge-detail">👨‍🍳 分步指导</span>
-    </div>
-    ${renderMarkdownSegments(text).replace('<span class="cursor"></span>', '')}`;
-}
-
-function renderGeneralResult(text) {
-  resultsSection.innerHTML = `
-    <div class="result-header">
-      <span class="result-type-badge badge-general">💬 智能回答</span>
-    </div>
-    <div class="streaming-answer">${escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
-}
-
-function searchDish(name) {
-  searchInput.value = `${name}怎么做`;
-  doSearch();
-}
-
-// ====================================================================
 // Modal
 // ====================================================================
 function openModal(title, bodyHtml) {
@@ -1655,17 +1891,6 @@ function openModal(title, bodyHtml) {
 function closeModal() {
   modalOverlay.classList.remove('open');
   document.body.style.overflow = '';
-}
-
-// ====================================================================
-// Error display
-// ====================================================================
-function showError(msg) {
-  resultsSection.innerHTML = `
-    <div class="error-banner">
-      <span class="error-icon">⚠️</span>
-      <span>${escapeHtml(msg)}</span>
-    </div>`;
 }
 
 // ====================================================================
