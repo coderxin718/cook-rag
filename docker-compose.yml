@@ -12,9 +12,9 @@ services:
   cook-rag:
     build: .
     container_name: cook-rag
-    # 不暴露端口到公网，只在内网供 Nginx 访问
-    expose:
-      - "8899"
+    # 暴露端口到宿主机，通过端口区分不同服务
+    ports:
+      - "8899:8899"
     environment:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - REDIS_URL=redis://redis:6379/0
